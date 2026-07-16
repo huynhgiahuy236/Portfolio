@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Production output
+dist/
+
+# TypeScript and Vite generated files
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# Local tooling and temporary files
+.codex/
+tmp/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Editor and OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Vercel local state
+.vercel/
