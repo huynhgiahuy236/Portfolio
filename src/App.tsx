@@ -197,7 +197,7 @@ function App() {
 
   const aboutLead = language === 'en' ? (
     <>
-      I am a final-year IT student focused on <strong>frontend development</strong>, with hands-on experience building <mark>Flutter applications</mark> and integrating <mark>REST APIs</mark>. I care about accessible UI, responsive layouts and practical user flows, and use <strong>AI tools</strong> to support code review, interface exploration and technical documentation.
+      I am a final-year IT student focused on <strong>fullstack development</strong>, with hands-on experience building <mark>Flutter applications</mark> and integrating <mark>REST APIs</mark>. I care about accessible UI, responsive layouts and practical user flows, and use <strong>AI tools</strong> to support code review, interface exploration and technical documentation.
     </>
   ) : (
     <>
