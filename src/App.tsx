@@ -214,11 +214,11 @@ function App() {
 
   const aboutLead = language === 'en' ? (
     <>
-      I am a final-year IT student focused on <strong>fullstack development</strong>, with hands-on experience building <mark>Flutter applications</mark> and integrating <mark>REST APIs</mark>. I care about accessible UI, responsive layouts and practical user flows, and use <strong>AI tools</strong> to support code review, interface exploration and technical documentation.
+      I am a final-year IT student focused on <strong>fullstack development</strong>, with hands-on experience building scalable <mark>NestJS & Express APIs</mark>, modeling data with <mark>Prisma & MySQL</mark>, containerizing with <mark>Docker</mark>, and crafting intuitive interfaces with <mark>React, Next.js & Flutter</mark>. I care about clean architecture, secure authentication, and practical system flows, leveraging <strong>AI tools</strong> to accelerate code review, system design, and technical documentation.
     </>
   ) : (
     <>
-      Tôi là sinh viên CNTT năm cuối, định hướng <strong>Frontend Developer</strong> và có kinh nghiệm xây dựng <mark>ứng dụng Flutter</mark>, tích hợp <mark>REST API</mark>. Tôi quan tâm đến UI dễ tiếp cận, <strong>responsive</strong> và luồng người dùng thực tế; đồng thời dùng <mark>công cụ AI</mark> để hỗ trợ review code, phát triển giao diện và viết tài liệu kỹ thuật.
+      Tôi là sinh viên CNTT năm cuối, định hướng <strong>Fullstack Developer</strong> và có kinh nghiệm xây dựng hệ thống API mở rộng với <mark>NestJS & Express</mark>, thiết kế CSDL với <mark>Prisma & MySQL</mark>, đóng gói môi trường <mark>Docker</mark>, cùng phát triển giao diện trực quan trên <mark>React, Next.js & Flutter</mark>. Tôi chú trọng kiến trúc sạch, xác thực bảo mật và quy trình thực tế; đồng thời dùng <mark>công cụ AI</mark> để hỗ trợ review code, thiết kế hệ thống và viết tài liệu kỹ thuật.
     </>
   )
 
@@ -304,7 +304,7 @@ function App() {
       <header className="nav-shell">
         <a className="brand-mark" href="#top" aria-label="Back to top">
           <span className="brand-badge">HGH</span>
-          <span className="brand-role">Frontend + Mobile</span>
+          <span className="brand-role">Fullstack Developer</span>
         </a>
         <nav id="primary-navigation" className={menuOpen ? 'nav-links is-open' : 'nav-links'} aria-label="Primary navigation">
           {t.nav.map((label, index) => (
@@ -338,11 +338,11 @@ function App() {
             <h1>
               {language === 'en' ? (
                 <>
-                  Building interfaces<br />that feel <em>effortless.</em>
+                  Engineering systems<br />and <em>fluid interfaces.</em>
                 </>
               ) : (
                 <>
-                  Xây dựng giao diện<br /><em>rõ ràng, mượt mà.</em>
+                  Xây dựng hệ thống<br /><em>vững chắc & mượt mà.</em>
                 </>
               )}
             </h1>
@@ -372,11 +372,11 @@ function App() {
 
           <div className="hero-portrait">
             <div className="portrait-image-wrapper">
-              <img src="/images/huy-portrait.png" alt="Huynh Gia Huy, Frontend and Mobile Developer" />
+              <img src="/images/huy-portrait.png" alt="Huynh Gia Huy, Fullstack Developer" />
             </div>
             <div className="portrait-meta">
               <span>📍 Ho Chi Minh City, VN</span>
-              <strong>Open to Internship</strong>
+              <strong>Open to Opportunities</strong>
             </div>
           </div>
         </section>
