@@ -222,7 +222,7 @@ function ProjectMedia({ id, title }: { id: string; title: string }) {
 function App() {
   const root = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('portfolio-language') as Language) || 'en')
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('portfolio-theme') as Theme) || 'dark')
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('portfolio-theme') as Theme) || 'light')
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [activeSection, setActiveSection] = useState('top')

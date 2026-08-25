@@ -960,8 +960,9 @@ section {
 /* ==================== About Section ==================== */
 .about-section {
   padding-block: clamp(5rem, 8vw, 8rem);
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--surface);
+  color: var(--text);
+  border-block: 1px solid var(--line);
   transition: background 0.3s, color 0.3s;
 }
 
@@ -997,7 +998,7 @@ section {
   position: relative;
   display: inline;
   color: inherit;
-  background: linear-gradient(transparent 68%, rgba(229, 166, 56, 0.35) 68%, rgba(229, 166, 56, 0.35) 94%, transparent 94%);
+  background: linear-gradient(transparent 68%, var(--accent-glow) 68%, var(--accent-glow) 94%, transparent 94%);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
@@ -1012,14 +1013,15 @@ section {
 .about-notes article {
   padding: 1.5rem;
   border-radius: 1.25rem;
-  background: color-mix(in srgb, currentColor 6%, transparent);
-  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  box-shadow: var(--soft-shadow);
 }
 
 .note-num {
   font-size: 0.7rem;
   font-weight: 700;
-  opacity: 0.6;
+  color: var(--accent);
 }
 
 .about-notes strong {
@@ -1033,19 +1035,20 @@ section {
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.6;
-  opacity: 0.75;
+  color: var(--muted);
 }
 
 .education {
   margin-top: 2.5rem;
   padding: 1.5rem;
   border-radius: 1.25rem;
-  background: color-mix(in srgb, currentColor 6%, transparent);
-  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
   display: grid;
   grid-template-columns: 8rem 1fr;
   gap: 1rem;
   align-items: baseline;
+  box-shadow: var(--soft-shadow);
 }
 
 .edu-label {
@@ -1053,7 +1056,7 @@ section {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  opacity: 0.6;
+  color: var(--accent);
 }
 
 .education strong {
@@ -1066,7 +1069,7 @@ section {
 .education p {
   margin: 0.25rem 0 0;
   font-size: 0.88rem;
-  opacity: 0.75;
+  color: var(--muted);
 }
 
 /* ==================== Skills Section ==================== */
@@ -1142,8 +1145,9 @@ section {
 .contact-section {
   min-height: 85vh;
   padding-block: clamp(5rem, 8vw, 8rem) 2rem;
-  background: #0f0f0d;
-  color: #f4efe4;
+  background: var(--surface-2);
+  color: var(--text);
+  border-top: 1px solid var(--line);
   position: relative;
   overflow: hidden;
 }
@@ -1156,7 +1160,7 @@ section {
 
 .contact-kicker {
   margin: clamp(2rem, 5vw, 4rem) 0 1rem;
-  color: #a59b8a;
+  color: var(--accent);
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1175,7 +1179,7 @@ section {
   font-family: 'Instrument Serif', serif;
   font-weight: 400;
   font-style: italic;
-  color: #e5a638;
+  color: var(--accent);
 }
 
 .contact-row {
@@ -1189,7 +1193,7 @@ section {
 .contact-row > p {
   max-width: 500px;
   margin: 0;
-  color: #a59b8a;
+  color: var(--muted);
   font-size: 1.05rem;
   line-height: 1.65;
 }
@@ -1201,24 +1205,27 @@ section {
 }
 
 .button-light {
-  background: #f4efe4;
-  color: #12110e;
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 8px 24px var(--accent-glow);
 }
 
 .button-light:hover {
-  background: #e5a638;
-  color: #12110e;
+  background: var(--accent-hover);
+  color: #ffffff;
+  box-shadow: 0 12px 30px var(--accent-glow);
 }
 
 .button-outline {
-  border: 1px solid rgba(244, 239, 228, 0.25);
+  border: 1px solid var(--line-strong);
   background: transparent;
-  color: #f4efe4;
+  color: var(--text);
 }
 
 .button-outline:hover {
-  border-color: #e5a638;
-  color: #e5a638;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
 }
 
 .contact-section footer {
@@ -1227,8 +1234,8 @@ section {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid rgba(244, 239, 228, 0.12);
-  color: #8c8375;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
   font-size: 0.74rem;
 }
 
@@ -1241,11 +1248,12 @@ section {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  color: var(--muted);
   transition: color 0.2s;
 }
 
 .footer-link:hover {
-  color: #e5a638;
+  color: var(--accent);
 }
 
 /* ==================== Back to Top ==================== */
