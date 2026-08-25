@@ -20,6 +20,10 @@ const coreTechnologies = [
 ] as const
 
 const projectImages: Record<string, { src: string; alt: string }[]> = {
+  nestapi: [
+    { src: '/images/projects/nest_swagger_api.jpg', alt: 'NestJS Swagger OpenAPI interactive documentation interface' },
+    { src: '/images/projects/prisma_docker_dashboard.jpg', alt: 'Prisma Studio, MySQL relational schema and Docker container metrics' },
+  ],
   stayz: [
     { src: '/imgs%20app/home.png', alt: 'StayZ home and hotel discovery screen' },
     { src: '/imgs%20app/tim%20kiem%20co%20goi%20y.png', alt: 'StayZ hotel search with live suggestions' },
@@ -154,7 +158,16 @@ const detailedSkillGroups: SkillGroup[] = [
 
 function ProjectMedia({ id, title }: { id: string; title: string }) {
   const [activeImage, setActiveImage] = useState(0)
-  const images = projectImages[id]
+  const images = projectImages[id] || []
+
+  const urlMap: Record<string, string> = {
+    nestapi: 'api.production.dev/swagger-docs (NestJS + Docker)',
+    movie: 'capstone-movie-ten.vercel.app',
+    shoes: 'shoes-store-react-js.vercel.app',
+    phone: 'phone-store-js-html-tailwindcss.vercel.app',
+  }
+
+  if (!images.length) return null
 
   return (
     <div className={`project-gallery ${id === 'stayz' ? 'is-mobile-gallery' : 'is-web-gallery'}`} aria-label={`${title} project gallery`}>
@@ -168,7 +181,7 @@ function ProjectMedia({ id, title }: { id: string; title: string }) {
             </div>
             <div className="browser-url">
               <span className="lock-icon">🔒</span>
-              <span>{id === 'movie' ? 'capstone-movie-ten.vercel.app' : id === 'shoes' ? 'shoes-store-react-js.vercel.app' : 'phone-store-js-html-tailwindcss.vercel.app'}</span>
+              <span>{urlMap[id] || 'localhost:3000'}</span>
             </div>
           </div>
         ) : (
@@ -178,26 +191,30 @@ function ProjectMedia({ id, title }: { id: string; title: string }) {
           </div>
         )}
         <div className="gallery-image-wrap">
-          <img key={images[activeImage].src} src={images[activeImage].src} alt={images[activeImage].alt} loading="lazy" />
+          <img key={images[activeImage]?.src} src={images[activeImage]?.src} alt={images[activeImage]?.alt} loading="lazy" />
         </div>
-        <span className="gallery-count" aria-hidden="true">
-          {String(activeImage + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
-        </span>
+        {images.length > 1 && (
+          <span className="gallery-count" aria-hidden="true">
+            {String(activeImage + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
+          </span>
+        )}
       </div>
 
-      <div className="gallery-thumbnails" aria-label={`${title} screenshots navigation`}>
-        {images.map((image, index) => (
-          <button
-            key={image.src}
-            className={`thumb-btn ${activeImage === index ? 'is-active' : ''}`}
-            onClick={() => setActiveImage(index)}
-            aria-label={`Show ${title} screenshot ${index + 1}`}
-            aria-pressed={activeImage === index}
-          >
-            <img src={image.src} alt="" loading="lazy" />
-          </button>
-        ))}
-      </div>
+      {images.length > 1 && (
+        <div className="gallery-thumbnails" aria-label={`${title} screenshots navigation`}>
+          {images.map((image, index) => (
+            <button
+              key={image.src}
+              className={`thumb-btn ${activeImage === index ? 'is-active' : ''}`}
+              onClick={() => setActiveImage(index)}
+              aria-label={`Show ${title} screenshot ${index + 1}`}
+              aria-pressed={activeImage === index}
+            >
+              <img src={image.src} alt="" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
