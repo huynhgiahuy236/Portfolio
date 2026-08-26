@@ -1,5 +1,24 @@
 export type Language = 'en' | 'vi'
 
+export type ProjectCategory = 'all' | 'backend' | 'fullstack' | 'mobile'
+
+export const cvOptions = [
+  {
+    id: 'frontend',
+    title: { en: 'Frontend Developer CV', vi: 'CV Lập trình viên Frontend' },
+    sub: { en: 'React, Next.js, TypeScript, UI/UX (PDF)', vi: 'React, Next.js, TypeScript, UI/UX (PDF)' },
+    file: '/cv/Frontend-Intern-HuynhGiaHuy.pdf',
+    fileName: 'Frontend-Intern-HuynhGiaHuy.pdf',
+  },
+  {
+    id: 'mobile',
+    title: { en: 'Flutter Mobile Developer CV', vi: 'CV Lập trình viên Flutter Mobile' },
+    sub: { en: 'Flutter, Dart, REST API, PayOS (PDF)', vi: 'Flutter, Dart, REST API, PayOS (PDF)' },
+    file: '/cv/CV-Intern-Mobile-HuynhGiaHuy.pdf',
+    fileName: 'CV-Intern-Mobile-HuynhGiaHuy.pdf',
+  },
+] as const
+
 export const copy = {
   en: {
     nav: ['Work', 'About', 'Stack', 'Contact'],
@@ -12,9 +31,10 @@ export const copy = {
     intro: 'Final-year IT student engineering scalable backend architectures, responsive web interfaces, and Flutter apps — from database schemas and REST APIs to high-performance user journeys.',
     explore: 'Explore selected work',
     contactCta: 'Contact me',
-    resume: 'Download résumé',
+    resume: 'Download CV',
+    selectCv: 'Select CV version',
     selected: 'Selected work',
-    selectedSub: 'Four products across web, backend, and mobile. Built with end-to-end focus from data models to fluid UX.',
+    selectedSub: 'Five products across backend, web, and mobile. Built with end-to-end focus from data models to fluid UX.',
     viewLive: 'View live',
     viewCode: 'Source code',
     flagship: 'Flagship mobile & API experience',
@@ -42,6 +62,11 @@ export const copy = {
     highlights: 'Highlights',
     caseStudy: 'View case study',
     backToTop: 'Back to top',
+    filterAll: 'All Projects',
+    filterBackend: 'Backend & APIs',
+    filterFullstack: 'Fullstack & Web',
+    filterMobile: 'Flutter Mobile',
+    zoomHint: 'Click to expand image',
   },
   vi: {
     nav: ['Dự án', 'Giới thiệu', 'Kỹ năng', 'Liên hệ'],
@@ -55,8 +80,9 @@ export const copy = {
     explore: 'Khám phá dự án',
     contactCta: 'Liên hệ với tôi',
     resume: 'Tải CV',
+    selectCv: 'Chọn bản CV tải về',
     selected: 'Dự án tiêu biểu',
-    selectedSub: 'Bốn sản phẩm đa nền tảng web, backend và mobile. Phát triển toàn diện từ mô hình dữ liệu đến trải nghiệm người dùng.',
+    selectedSub: 'Năm sản phẩm đa nền tảng backend, web và mobile. Phát triển toàn diện từ mô hình dữ liệu đến trải nghiệm người dùng.',
     viewLive: 'Xem trực tiếp',
     viewCode: 'Mã nguồn',
     flagship: 'Dự án mobile & API tiêu biểu',
@@ -84,14 +110,38 @@ export const copy = {
     highlights: 'Điểm nổi bật',
     caseStudy: 'Xem case study',
     backToTop: 'Về đầu trang',
+    filterAll: 'Tất cả dự án',
+    filterBackend: 'Backend & APIs',
+    filterFullstack: 'Fullstack & Web',
+    filterMobile: 'Flutter Mobile',
+    zoomHint: 'Nhấp để xem ảnh lớn',
   },
 } as const
 
-export const projects = [
+export interface ProjectItem {
+  id: string
+  index: string
+  year: string
+  category: ProjectCategory
+  title: string
+  role: { en: string; vi: string }
+  problem: { en: string; vi: string }
+  highlights: { en: readonly string[]; vi: readonly string[] }
+  type: { en: string; vi: string }
+  description: { en: string; vi: string }
+  stats: readonly string[]
+  tags: readonly string[]
+  github: string
+  live: string
+  visual: string
+}
+
+export const projects: readonly ProjectItem[] = [
   {
     id: 'nestapi',
     index: '01',
     year: '2026',
+    category: 'backend',
     title: 'NestJS Core API Engine',
     role: { en: 'Fullstack & Backend Developer', vi: 'Lập trình viên Fullstack & Backend' },
     problem: {
@@ -129,6 +179,7 @@ export const projects = [
     id: 'stayz',
     index: '02',
     year: '2026',
+    category: 'mobile',
     title: 'StayZ',
     role: { en: 'Fullstack & Mobile Developer', vi: 'Lập trình viên Fullstack & Mobile' },
     problem: {
@@ -154,6 +205,7 @@ export const projects = [
     id: 'movie',
     index: '03',
     year: '2026',
+    category: 'fullstack',
     title: 'Movie Booking',
     role: { en: 'Frontend & Fullstack Developer', vi: 'Lập trình viên Frontend & Fullstack' },
     problem: {
@@ -179,6 +231,7 @@ export const projects = [
     id: 'shoes',
     index: '04',
     year: '2026',
+    category: 'fullstack',
     title: 'HiKu Shoes',
     role: { en: 'Frontend & Fullstack Developer', vi: 'Lập trình viên Frontend & Fullstack' },
     problem: {
@@ -204,6 +257,7 @@ export const projects = [
     id: 'phone',
     index: '05',
     year: '2026',
+    category: 'fullstack',
     title: 'HiKu Phone',
     role: { en: 'Frontend Developer', vi: 'Lập trình viên Frontend' },
     problem: {
@@ -225,4 +279,4 @@ export const projects = [
     live: 'https://phone-store-js-html-tailwindcss.vercel.app/',
     visual: 'device',
   },
-] as const
+]
