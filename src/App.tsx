@@ -1,8 +1,28 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpRight, Check, Copy, ExternalLink, Github, Linkedin, Menu, Moon, Sparkles, Sun, X } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpRight,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  ExternalLink,
+  FileText,
+  Github,
+  Linkedin,
+  Maximize2,
+  Menu,
+  Moon,
+  Sparkles,
+  Sun,
+  X,
+} from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { copy, Language, projects } from './content'
+import { copy, cvOptions, Language, ProjectCategory, projects } from './content'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -156,7 +176,20 @@ const detailedSkillGroups: SkillGroup[] = [
   },
 ]
 
-function ProjectMedia({ id, title }: { id: string; title: string }) {
+interface LightboxState {
+  images: { src: string; alt: string }[]
+  currentIndex: number
+  title: string
+}
+
+interface ProjectMediaProps {
+  id: string
+  title: string
+  zoomHint: string
+  onOpenLightbox: (images: { src: string; alt: string }[], index: number, title: string) => void
+}
+
+function ProjectMedia({ id, title, zoomHint, onOpenLightbox }: ProjectMediaProps) {
   const [activeImage, setActiveImage] = useState(0)
   const images = projectImages[id] || []
 
@@ -190,9 +223,30 @@ function ProjectMedia({ id, title }: { id: string; title: string }) {
             <span className="phone-speaker" />
           </div>
         )}
-        <div className="gallery-image-wrap">
+
+        <div
+          className="gallery-image-wrap"
+          onClick={() => onOpenLightbox(images, activeImage, title)}
+          title={zoomHint}
+          tabIndex={0}
+          role="button"
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpenLightbox(images, activeImage, title)}
+          aria-label={`Expand ${title} image`}
+        >
           <img key={images[activeImage]?.src} src={images[activeImage]?.src} alt={images[activeImage]?.alt} loading="lazy" />
+          <button
+            type="button"
+            className="gallery-zoom-badge"
+            aria-label="Expand image"
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpenLightbox(images, activeImage, title)
+            }}
+          >
+            <Maximize2 size={14} />
+          </button>
         </div>
+
         {images.length > 1 && (
           <span className="gallery-count" aria-hidden="true">
             {String(activeImage + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
@@ -219,6 +273,176 @@ function ProjectMedia({ id, title }: { id: string; title: string }) {
   )
 }
 
+interface CvDropdownProps {
+  language: Language
+  buttonClass?: string
+  align?: 'left' | 'right' | 'top'
+}
+
+function CvDropdown({ language, buttonClass = 'button button-ghost resume-button', align = 'left' }: CvDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const t = copy[language]
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleEsc)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [isOpen])
+
+  return (
+    <div className="cv-dropdown-wrapper" ref={dropdownRef}>
+      <button
+        type="button"
+        className={buttonClass}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        aria-label={t.resume}
+      >
+        <FileText size={16} />
+        <span>{t.resume} (PDF)</span>
+        <ChevronDown size={14} className={`dropdown-chevron ${isOpen ? 'is-open' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className={`cv-dropdown-menu align-${align}`} role="menu">
+          <div className="cv-dropdown-header">
+            <span>{t.selectCv}</span>
+          </div>
+          <div className="cv-dropdown-list">
+            {cvOptions.map((cv) => (
+              <a
+                key={cv.id}
+                href={cv.file}
+                download={cv.fileName}
+                className="cv-dropdown-item"
+                role="menuitem"
+                onClick={() => setIsOpen(false)}
+              >
+                <div className="cv-item-icon">
+                  <Download size={16} />
+                </div>
+                <div className="cv-item-text">
+                  <strong>{cv.title[language]}</strong>
+                  <small>{cv.sub[language]}</small>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface LightboxModalProps {
+  state: LightboxState
+  onClose: () => void
+  onNavigate: (index: number) => void
+}
+
+function LightboxModal({ state, onClose, onNavigate }: LightboxModalProps) {
+  const { images, currentIndex, title } = state
+  const currentImg = images[currentIndex]
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight' && images.length > 1) {
+        onNavigate((currentIndex + 1) % images.length)
+      }
+      if (e.key === 'ArrowLeft' && images.length > 1) {
+        onNavigate((currentIndex - 1 + images.length) % images.length)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [currentIndex, images.length, onClose, onNavigate])
+
+  if (!currentImg) return null
+
+  return (
+    <div className="lightbox-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label={`${title} screenshot lightbox`}>
+      <div className="lightbox-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="lightbox-header">
+          <div className="lightbox-meta">
+            <span className="lightbox-title">{title}</span>
+            {images.length > 1 && (
+              <span className="lightbox-counter">
+                {currentIndex + 1} / {images.length}
+              </span>
+            )}
+          </div>
+          <button className="lightbox-close-btn" onClick={onClose} aria-label="Close preview">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="lightbox-main">
+          {images.length > 1 && (
+            <button
+              className="lightbox-nav-btn prev"
+              onClick={() => onNavigate((currentIndex - 1 + images.length) % images.length)}
+              aria-label="Previous image"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+
+          <div className="lightbox-image-stage">
+            <img src={currentImg.src} alt={currentImg.alt} className="lightbox-full-image" />
+            <p className="lightbox-caption">{currentImg.alt}</p>
+          </div>
+
+          {images.length > 1 && (
+            <button
+              className="lightbox-nav-btn next"
+              onClick={() => onNavigate((currentIndex + 1) % images.length)}
+              aria-label="Next image"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+        </div>
+
+        {images.length > 1 && (
+          <div className="lightbox-thumbs-bar">
+            {images.map((img, idx) => (
+              <button
+                key={img.src}
+                className={`lightbox-thumb-btn ${currentIndex === idx ? 'is-active' : ''}`}
+                onClick={() => onNavigate(idx)}
+                aria-label={`View image ${idx + 1}`}
+                aria-pressed={currentIndex === idx}
+              >
+                <img src={img.src} alt="" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const root = useRef<HTMLDivElement>(null)
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('portfolio-language') as Language) || 'en')
@@ -227,7 +451,22 @@ function App() {
   const [copied, setCopied] = useState(false)
   const [activeSection, setActiveSection] = useState('top')
   const [showBackToTop, setShowBackToTop] = useState(false)
+  const [scrollProgress, setScrollProgress] = useState(0)
+  const [selectedCategory, setSelectedCategory] = useState<ProjectCategory>('all')
+  const [lightbox, setLightbox] = useState<LightboxState | null>(null)
+
   const t = copy[language]
+
+  const filteredProjects = selectedCategory === 'all'
+    ? projects
+    : projects.filter((p) => p.category === selectedCategory)
+
+  const categoryLabels: Record<ProjectCategory, string> = {
+    all: t.filterAll,
+    backend: t.filterBackend,
+    fullstack: t.filterFullstack,
+    mobile: t.filterMobile,
+  }
 
   const aboutLead = language === 'en' ? (
     <>
@@ -268,7 +507,14 @@ function App() {
       { rootMargin: '-30% 0px -60% 0px' },
     )
     sections.forEach((section) => observer.observe(section))
-    const onScroll = () => setShowBackToTop(window.scrollY > 600)
+    
+    const onScroll = () => {
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight
+      if (totalScroll > 0) {
+        setScrollProgress(window.scrollY / totalScroll)
+      }
+      setShowBackToTop(window.scrollY > 600)
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       observer.disconnect()
@@ -313,10 +559,21 @@ function App() {
     }
   }
 
+  const handleOpenLightbox = (images: { src: string; alt: string }[], index: number, title: string) => {
+    setLightbox({ images, currentIndex: index, title })
+  }
+
   const navIds = ['work', 'about', 'stack', 'contact']
+  const filterCategories: ProjectCategory[] = ['all', 'backend', 'fullstack', 'mobile']
 
   return (
     <div ref={root} className="site-shell">
+      <div
+        className="scroll-progress-bar"
+        style={{ transform: `scaleX(${scrollProgress})` }}
+        aria-hidden="true"
+      />
+
       <a className="skip-link" href="#main">Skip to content</a>
       <header className="nav-shell">
         <a className="brand-mark" href="#top" aria-label="Back to top">
@@ -381,9 +638,7 @@ function App() {
                 {t.contactCta}
                 <ArrowUpRight size={17} />
               </a>
-              <a className="button button-ghost resume-button" href="/cv/Frontend-Intern-HuynhGiaHuy.pdf" download>
-                {t.resume} (PDF)
-              </a>
+              <CvDropdown language={language} />
             </div>
           </div>
 
@@ -421,11 +676,34 @@ function App() {
             <p>{t.selectedSub}</p>
           </header>
 
+          <div className="project-filters-bar" role="tablist" aria-label="Filter projects">
+            {filterCategories.map((cat) => {
+              const count = cat === 'all' ? projects.length : projects.filter((p) => p.category === cat).length
+              return (
+                <button
+                  key={cat}
+                  role="tab"
+                  aria-selected={selectedCategory === cat}
+                  className={`filter-chip ${selectedCategory === cat ? 'is-active' : ''}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  <span>{categoryLabels[cat]}</span>
+                  <span className="filter-badge">{count}</span>
+                </button>
+              )
+            })}
+          </div>
+
           <div className="projects-list">
-            {projects.map((project, index) => (
+            {filteredProjects.map((project, index) => (
               <article key={project.id} className={`project-card project-${project.id} ${index % 2 ? 'is-reversed' : ''}`} data-reveal>
                 <div className="project-media">
-                  <ProjectMedia id={project.id} title={project.title} />
+                  <ProjectMedia
+                    id={project.id}
+                    title={project.title}
+                    zoomHint={t.zoomHint}
+                    onOpenLightbox={handleOpenLightbox}
+                  />
                 </div>
                 <div className="project-content">
                   <div className="project-number">
@@ -571,10 +849,11 @@ function App() {
             <footer>
               <span>© {new Date().getFullYear()} · Huynh Gia Huy</span>
               <div className="footer-links">
-                <a href="/cv/Frontend-Intern-HuynhGiaHuy.pdf" download className="footer-link">
-                  <ExternalLink size={14} />
-                  <span>CV</span>
-                </a>
+                <CvDropdown
+                  language={language}
+                  buttonClass="footer-link cv-footer-trigger"
+                  align="top"
+                />
                 <a href="https://github.com/huynhgiahuy236" target="_blank" rel="noreferrer" className="footer-link">
                   <Github size={14} />
                   <span>GitHub</span>
@@ -592,6 +871,14 @@ function App() {
       <a className={`back-to-top ${showBackToTop ? 'is-visible' : ''}`} href="#top" aria-label={t.backToTop}>
         <ArrowUp size={20} />
       </a>
+
+      {lightbox && (
+        <LightboxModal
+          state={lightbox}
+          onClose={() => setLightbox(null)}
+          onNavigate={(index) => setLightbox({ ...lightbox, currentIndex: index })}
+        />
+      )}
     </div>
   )
 }
