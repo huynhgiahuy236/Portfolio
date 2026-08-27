@@ -1,29 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react'
-
-export type ToastType = 'success' | 'info' | 'error'
-
-export interface ToastMessage {
-  id: string
-  title?: string
-  message: string
-  type?: ToastType
-  duration?: number
-}
-
-interface ToastContextValue {
-  showToast: (message: string, type?: ToastType, title?: string, duration?: number) => void
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null)
-
-export function useToast() {
-  const context = useContext(ToastContext)
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider')
-  }
-  return context
-}
+import { ToastContext, ToastMessage, ToastType } from './useToast'
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -32,17 +9,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  const showToast = useCallback((message: string, type: ToastType = 'success', title?: string, duration = 3200) => {
-    const id = Math.random().toString(36).substring(2, 9)
-    const newToast: ToastMessage = { id, message, type, title, duration }
-    setToasts((prev) => [...prev, newToast])
+  const showToast = useCallback(
+    (message: string, type: ToastType = 'success', title?: string, duration = 3200) => {
+      const id = Math.random().toString(36).substring(2, 9)
+      const newToast: ToastMessage = { id, message, type, title, duration }
+      setToasts((prev) => [...prev, newToast])
 
-    if (duration > 0) {
-      setTimeout(() => {
-        removeToast(id)
-      }, duration)
-    }
-  }, [removeToast])
+      if (duration > 0) {
+        setTimeout(() => {
+          removeToast(id)
+        }, duration)
+      }
+    },
+    [removeToast],
+  )
 
   return (
     <ToastContext.Provider value={{ showToast }}>
