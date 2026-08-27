@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
   X,
-  ExternalLink,
   Github,
   Layers,
   Sparkles,
