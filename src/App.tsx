@@ -7,18 +7,12 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Code2,
   Command,
-  Compass,
   Copy,
   Cpu,
   Download,
-  ExternalLink,
   FileText,
-  Filter,
-  FolderGit2,
   Github,
-  Layers,
   Linkedin,
   Maximize2,
   Menu,
@@ -43,7 +37,7 @@ import {
 } from './content'
 import { CommandPalette } from './components/CommandPalette'
 import { ProjectModal } from './components/ProjectModal'
-import { useToast } from './components/Toast'
+import { useToast } from './components/useToast'
 
 gsap.registerPlugin(ScrollTrigger)
 
