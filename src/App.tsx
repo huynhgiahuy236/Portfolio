@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useMemo, useCallback } from 'react'
 import {
   ArrowDown,
   ArrowUp,
@@ -7,22 +7,43 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Code2,
+  Command,
+  Compass,
   Copy,
+  Cpu,
   Download,
   ExternalLink,
   FileText,
+  Filter,
+  FolderGit2,
   Github,
+  Layers,
   Linkedin,
   Maximize2,
   Menu,
   Moon,
+  Search,
+  Send,
   Sparkles,
   Sun,
+  Terminal,
   X,
 } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { copy, cvOptions, Language, ProjectCategory, projects } from './content'
+import {
+  copy,
+  cvOptions,
+  impactMetrics,
+  Language,
+  ProjectCategory,
+  ProjectItem,
+  projects,
+} from './content'
+import { CommandPalette } from './components/CommandPalette'
+import { ProjectModal } from './components/ProjectModal'
+import { useToast } from './components/Toast'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -95,7 +116,7 @@ const detailedSkillGroups: SkillGroup[] = [
       { name: 'Express.js', icon: '/icons/tech/express.svg' },
       { name: 'RESTful API' },
       { name: 'JWT & Auth (RBAC / Bcrypt)' },
-      { name: 'Swagger / OpenAPI' },
+      { name: 'Swagger / OpenAPI 3.0' },
     ],
   },
   {
@@ -117,11 +138,11 @@ const detailedSkillGroups: SkillGroup[] = [
     titleVi: 'DevOps & Công cụ',
     skills: [
       { name: 'Docker', icon: '/icons/tech/docker.svg' },
+      { name: 'Docker Compose' },
       { name: 'Git', icon: '/icons/tech/git.svg' },
       { name: 'GitHub' },
       { name: 'Postman' },
       { name: 'Vercel', icon: '/icons/tech/vercel.svg' },
-      { name: 'Clean Architecture' },
     ],
   },
   {
@@ -148,6 +169,7 @@ const detailedSkillGroups: SkillGroup[] = [
       { name: 'Feature Architecture' },
       { name: 'Responsive Mobile UI' },
       { name: 'PayOS Integration' },
+      { name: 'State Management' },
     ],
   },
   {
@@ -157,7 +179,7 @@ const detailedSkillGroups: SkillGroup[] = [
     skills: [
       { name: 'Tailwind CSS', icon: '/icons/tech/tailwindcss.svg' },
       { name: 'HTML5', icon: '/icons/tech/html5.svg' },
-      { name: 'CSS3', icon: '/icons/tech/css3.svg' },
+      { name: 'CSS3 / Modern CSS', icon: '/icons/tech/css3.svg' },
       { name: 'Sass / SCSS' },
       { name: 'Responsive Layouts' },
       { name: 'Figma', icon: '/icons/tech/figma.svg' },
@@ -171,7 +193,7 @@ const detailedSkillGroups: SkillGroup[] = [
       { name: 'Prompt Engineering' },
       { name: 'Code Review Support' },
       { name: 'Technical Docs' },
-      { name: 'Rapid Prototyping' },
+      { name: 'Rapid Architecture Prototyping' },
     ],
   },
 ]
@@ -180,6 +202,48 @@ interface LightboxState {
   images: { src: string; alt: string }[]
   currentIndex: number
   title: string
+}
+
+function AnimatedCounter({ target, suffix = '', duration = 1600 }: { target: number; suffix?: string; duration?: number }) {
+  const [count, setCount] = useState(0)
+  const ref = useRef<HTMLSpanElement>(null)
+  const hasAnimated = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true
+          const startTime = performance.now()
+          const animate = (now: number) => {
+            const progress = Math.min((now - startTime) / duration, 1)
+            const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress)
+            setCount(Math.floor(easeProgress * target))
+            if (progress < 1) {
+              requestAnimationFrame(animate)
+            } else {
+              setCount(target)
+            }
+          }
+          requestAnimationFrame(animate)
+        }
+      },
+      { threshold: 0.2 },
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [target, duration])
+
+  return (
+    <span ref={ref} className="stat-number">
+      {count}
+      <span className="stat-suffix">{suffix}</span>
+    </span>
+  )
 }
 
 interface ProjectMediaProps {
@@ -277,9 +341,10 @@ interface CvDropdownProps {
   language: Language
   buttonClass?: string
   align?: 'left' | 'right' | 'top'
+  onDownload?: (cvTitle: string) => void
 }
 
-function CvDropdown({ language, buttonClass = 'button button-ghost resume-button', align = 'left' }: CvDropdownProps) {
+function CvDropdown({ language, buttonClass = 'button button-ghost resume-button', align = 'left', onDownload }: CvDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const t = copy[language]
@@ -331,7 +396,10 @@ function CvDropdown({ language, buttonClass = 'button button-ghost resume-button
                 download={cv.fileName}
                 className="cv-dropdown-item"
                 role="menuitem"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false)
+                  onDownload?.(cv.title[language])
+                }}
               >
                 <div className="cv-item-icon">
                   <Download size={16} />
@@ -454,7 +522,20 @@ function App() {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<ProjectCategory>('all')
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState<ProjectItem | null>(null)
+  const [cmdKOpen, setCmdKOpen] = useState(false)
 
+  // Skill matrix filter & search state
+  const [skillCategory, setSkillCategory] = useState<string>('all')
+  const [skillSearch, setSkillSearch] = useState<string>('')
+
+  // Quick message form state
+  const [contactName, setContactName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactMsg, setContactMsg] = useState('')
+  const [messageSent, setMessageSent] = useState(false)
+
+  const { showToast } = useToast()
   const t = copy[language]
 
   const filteredProjects = selectedCategory === 'all'
@@ -467,6 +548,29 @@ function App() {
     fullstack: t.filterFullstack,
     mobile: t.filterMobile,
   }
+
+  // Filter skills
+  const filteredSkillGroups = useMemo(() => {
+    const query = skillSearch.toLowerCase().trim()
+    return detailedSkillGroups
+      .filter((group) => skillCategory === 'all' || group.id === skillCategory)
+      .map((group) => {
+        if (!query) return group
+        const matchingSkills = group.skills.filter((skill) =>
+          skill.name.toLowerCase().includes(query),
+        )
+        const groupTitleMatch =
+          group.titleEn.toLowerCase().includes(query) ||
+          group.titleVi.toLowerCase().includes(query)
+
+        if (groupTitleMatch) return group
+        return {
+          ...group,
+          skills: matchingSkills,
+        }
+      })
+      .filter((group) => group.skills.length > 0)
+  }, [skillCategory, skillSearch])
 
   const aboutLead = language === 'en' ? (
     <>
@@ -488,6 +592,57 @@ function App() {
     localStorage.setItem('portfolio-language', language)
   }, [language])
 
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark'
+      showToast(
+        next === 'dark' ? 'Switched to Dark mode' : 'Switched to Light mode',
+        'info',
+      )
+      return next
+    })
+  }, [showToast])
+
+  const toggleLanguage = useCallback(() => {
+    setLanguage((prev) => {
+      const next = prev === 'en' ? 'vi' : 'en'
+      showToast(
+        next === 'vi' ? 'Đã chuyển sang Tiếng Việt' : 'Switched to English',
+        'info',
+      )
+      return next
+    })
+  }, [showToast])
+
+  // Mouse spotlight tracker
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const cards = document.querySelectorAll<HTMLElement>('.project-card, .skill-card, .metric-card, .hero-copy')
+      cards.forEach((card) => {
+        const rect = card.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        card.style.setProperty('--mouse-x', `${x}px`)
+        card.style.setProperty('--mouse-y', `${y}px`)
+      })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [filteredProjects, filteredSkillGroups])
+
+  // Keyboard shortcut for Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setCmdKOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
     const close = (event: KeyboardEvent) => event.key === 'Escape' && setMenuOpen(false)
@@ -499,7 +654,7 @@ function App() {
   }, [menuOpen])
 
   useEffect(() => {
-    const sections = ['top', 'work', 'about', 'stack', 'contact']
+    const sections = ['top', 'metrics', 'work', 'about', 'stack', 'contact']
       .map((id) => document.getElementById(id))
       .filter((section): section is HTMLElement => Boolean(section))
     const observer = new IntersectionObserver(
@@ -507,7 +662,7 @@ function App() {
       { rootMargin: '-30% 0px -60% 0px' },
     )
     sections.forEach((section) => observer.observe(section))
-    
+
     const onScroll = () => {
       const totalScroll = document.documentElement.scrollHeight - window.innerHeight
       if (totalScroll > 0) {
@@ -533,18 +688,52 @@ function App() {
         .from('.technology-track > div', { y: 18, opacity: 0, duration: 0.55, stagger: 0.06 }, '-=.35')
 
       gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((element) => {
-        gsap.from(element, { y: 28, opacity: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: element, start: 'top 88%', once: true } })
+        gsap.from(element, {
+          y: 28,
+          opacity: 0,
+          duration: 0.75,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: element, start: 'top 88%', once: true },
+        })
       })
 
       gsap.utils.toArray<HTMLElement>('.project-card').forEach((card) => {
         const media = card.querySelector('.project-media')
         const content = card.querySelectorAll('.project-content > *')
-        gsap.from(media, { scale: 0.94, opacity: 0, duration: 0.9, ease: 'expo.out', scrollTrigger: { trigger: card, start: 'top 82%', once: true } })
-        gsap.from(content, { x: card.classList.contains('is-reversed') ? -24 : 24, opacity: 0, duration: 0.62, stagger: 0.055, ease: 'power3.out', scrollTrigger: { trigger: card, start: 'top 78%', once: true } })
+        gsap.from(media, {
+          scale: 0.94,
+          opacity: 0,
+          duration: 0.9,
+          ease: 'expo.out',
+          scrollTrigger: { trigger: card, start: 'top 82%', once: true },
+        })
+        gsap.from(content, {
+          x: card.classList.contains('is-reversed') ? -24 : 24,
+          opacity: 0,
+          duration: 0.62,
+          stagger: 0.055,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: card, start: 'top 78%', once: true },
+        })
       })
 
-      gsap.from('.about-notes article', { y: 24, opacity: 0, stagger: 0.12, duration: 0.7, ease: 'power3.out', scrollTrigger: { trigger: '.about-notes', start: 'top 85%', once: true } })
-      gsap.from('.skills-grid article', { y: 30, scale: 0.97, opacity: 0, stagger: 0.08, duration: 0.7, ease: 'expo.out', scrollTrigger: { trigger: '.skills-grid', start: 'top 84%', once: true } })
+      gsap.from('.about-notes article', {
+        y: 24,
+        opacity: 0,
+        stagger: 0.12,
+        duration: 0.7,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: '.about-notes', start: 'top 85%', once: true },
+      })
+      gsap.from('.skills-grid article', {
+        y: 30,
+        scale: 0.97,
+        opacity: 0,
+        stagger: 0.08,
+        duration: 0.7,
+        ease: 'expo.out',
+        scrollTrigger: { trigger: '.skills-grid', start: 'top 84%', once: true },
+      })
     }, root)
     return () => context.revert()
   }, [])
@@ -553,6 +742,7 @@ function App() {
     try {
       await navigator.clipboard.writeText('huynhgiahuy236@gmail.com')
       setCopied(true)
+      showToast(t.copied, 'success')
       window.setTimeout(() => setCopied(false), 2200)
     } catch {
       window.location.href = 'mailto:huynhgiahuy236@gmail.com'
@@ -561,6 +751,34 @@ function App() {
 
   const handleOpenLightbox = (images: { src: string; alt: string }[], index: number, title: string) => {
     setLightbox({ images, currentIndex: index, title })
+  }
+
+  const handleQuickSend = (e: React.FormEvent) => {
+    e.preventDefault()
+    const subject = encodeURIComponent(`Inquiry from ${contactName || 'Portfolio Visitor'}`)
+    const body = encodeURIComponent(
+      `Name: ${contactName}\nEmail: ${contactEmail}\n\nMessage:\n${contactMsg}`,
+    )
+    window.location.href = `mailto:huynhgiahuy236@gmail.com?subject=${subject}&body=${body}`
+    setMessageSent(true)
+    showToast(
+      language === 'en' ? 'Opened in your default email client!' : 'Đã mở trong ứng dụng email của bạn!',
+      'success',
+    )
+    setTimeout(() => setMessageSent(false), 3000)
+  }
+
+  const handleCopyFormattedMsg = async () => {
+    const formatted = `Sender: ${contactName || 'N/A'}\nEmail: ${contactEmail || 'N/A'}\n\nMessage:\n${contactMsg || 'N/A'}`
+    try {
+      await navigator.clipboard.writeText(formatted)
+      showToast(
+        language === 'en' ? 'Message copied to clipboard!' : 'Đã sao chép nội dung tin nhắn!',
+        'success',
+      )
+    } catch {
+      showToast('Could not copy to clipboard', 'error')
+    }
   }
 
   const navIds = ['work', 'about', 'stack', 'contact']
@@ -574,36 +792,70 @@ function App() {
         aria-hidden="true"
       />
 
-      <a className="skip-link" href="#main">Skip to content</a>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+
+      {/* Navigation Shell */}
       <header className="nav-shell">
         <a className="brand-mark" href="#top" aria-label="Back to top">
           <span className="brand-badge">HGH</span>
           <span className="brand-role">Fullstack Developer</span>
         </a>
+
+        {/* Command Palette Trigger in Header */}
+        <button
+          className="cmdk-trigger-btn"
+          onClick={() => setCmdKOpen(true)}
+          aria-label="Open Command Palette (Ctrl+K)"
+          title="Press Ctrl+K or ⌘K"
+        >
+          <Search size={14} />
+          <span className="cmdk-trigger-text">{language === 'en' ? 'Quick search...' : 'Tìm kiếm nhanh...'}</span>
+          <kbd className="cmdk-trigger-kbd">⌘K</kbd>
+        </button>
+
         <nav id="primary-navigation" className={menuOpen ? 'nav-links is-open' : 'nav-links'} aria-label="Primary navigation">
           {t.nav.map((label, index) => (
-            <a className={activeSection === navIds[index] ? 'is-active' : ''} key={label} onClick={() => setMenuOpen(false)} href={`#${navIds[index]}`}>
+            <a
+              className={activeSection === navIds[index] ? 'is-active' : ''}
+              key={label}
+              onClick={() => setMenuOpen(false)}
+              href={`#${navIds[index]}`}
+            >
               {label}
             </a>
           ))}
         </nav>
+
         <div className="nav-actions">
-          <button className="language-toggle" onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')} aria-label="Change language">
+          <button className="language-toggle" onClick={toggleLanguage} aria-label="Change language">
             {language === 'en' ? 'VI' : 'EN'}
           </button>
-          <button className="icon-button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+          <button
+            className="icon-button"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-controls="primary-navigation" aria-label="Toggle menu">
+          <button
+            className="menu-button"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-expanded={menuOpen}
+            aria-controls="primary-navigation"
+            aria-label="Toggle menu"
+          >
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </header>
 
       <main id="main">
+        {/* Hero Section */}
         <section id="top" className="hero page-width">
           <div className="hero-ambient-glow" aria-hidden="true" />
-          <div className="hero-copy">
+          <div className="hero-copy spotlight-target">
             <div className="availability">
               <span className="pulse-dot" />
               <span>{t.available}</span>
@@ -638,7 +890,10 @@ function App() {
                 {t.contactCta}
                 <ArrowUpRight size={17} />
               </a>
-              <CvDropdown language={language} />
+              <CvDropdown
+                language={language}
+                onDownload={(title) => showToast(`Starting download: ${title}`, 'success')}
+              />
             </div>
           </div>
 
@@ -653,6 +908,7 @@ function App() {
           </div>
         </section>
 
+        {/* Tech Strip */}
         <section className="technology-strip" aria-label="Core technologies">
           <div className="technology-track page-width">
             {coreTechnologies.map((technology, index) => (
@@ -667,6 +923,22 @@ function App() {
           </div>
         </section>
 
+        {/* Animated Impact Metrics */}
+        <section id="metrics" className="impact-metrics-section page-width" data-reveal>
+          <div className="metrics-grid">
+            {impactMetrics.map((metric) => (
+              <div key={metric.id} className="metric-card spotlight-target">
+                <div className="metric-value-wrap">
+                  <AnimatedCounter target={metric.value} suffix={metric.suffix} />
+                </div>
+                <strong className="metric-label">{metric.label[language]}</strong>
+                <span className="metric-sub">{metric.sub[language]}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Selected Work Section */}
         <section id="work" className="work-section page-width">
           <header className="section-heading" data-reveal>
             <div>
@@ -676,6 +948,7 @@ function App() {
             <p>{t.selectedSub}</p>
           </header>
 
+          {/* Project Category Filter Chips */}
           <div className="project-filters-bar" role="tablist" aria-label="Filter projects">
             {filterCategories.map((cat) => {
               const count = cat === 'all' ? projects.length : projects.filter((p) => p.category === cat).length
@@ -694,9 +967,14 @@ function App() {
             })}
           </div>
 
+          {/* Projects List */}
           <div className="projects-list">
             {filteredProjects.map((project, index) => (
-              <article key={project.id} className={`project-card project-${project.id} ${index % 2 ? 'is-reversed' : ''}`} data-reveal>
+              <article
+                key={project.id}
+                className={`project-card project-${project.id} ${index % 2 ? 'is-reversed' : ''} spotlight-target`}
+                data-reveal
+              >
                 <div className="project-media">
                   <ProjectMedia
                     id={project.id}
@@ -742,16 +1020,25 @@ function App() {
                   </div>
 
                   <div className="project-links">
+                    <button
+                      type="button"
+                      className="button button-primary case-study-btn"
+                      onClick={() => setSelectedCaseStudy(project)}
+                    >
+                      <Cpu size={16} />
+                      <span>{t.viewDetails}</span>
+                    </button>
+
                     {project.live && (
-                      <a className="button button-primary" href={project.live} target="_blank" rel="noreferrer">
-                        {t.viewLive}
-                        <ArrowUpRight size={17} />
+                      <a className="button button-ghost" href={project.live} target="_blank" rel="noreferrer">
+                        <span>{t.viewLive}</span>
+                        <ArrowUpRight size={16} />
                       </a>
                     )}
                     {project.github && (
                       <a className="button button-ghost" href={project.github} target="_blank" rel="noreferrer">
-                        {t.viewCode}
-                        <Github size={17} />
+                        <Github size={16} />
+                        <span>{t.viewCode}</span>
                       </a>
                     )}
                   </div>
@@ -761,6 +1048,7 @@ function App() {
           </div>
         </section>
 
+        {/* About Section */}
         <section id="about" className="about-section">
           <div className="page-width about-layout" data-reveal>
             <div>
@@ -770,12 +1058,12 @@ function App() {
             <div className="about-copy">
               <p>{aboutLead}</p>
               <div className="about-notes">
-                <article>
+                <article className="spotlight-target">
                   <span className="note-num">01</span>
                   <strong>{t.principle1}</strong>
                   <p>{t.principle1Body}</p>
                 </article>
-                <article>
+                <article className="spotlight-target">
                   <span className="note-num">02</span>
                   <strong>{t.principle2}</strong>
                   <p>{t.principle2Body}</p>
@@ -792,37 +1080,86 @@ function App() {
           </div>
         </section>
 
+        {/* Interactive Skills & Matrix Section */}
         <section id="stack" className="skills-section page-width">
           <header className="section-heading" data-reveal>
             <div>
               <span className="eyebrow">03 / STACK</span>
               <h2>{t.stackTitle}</h2>
             </div>
-            <p>
-              {language === 'en'
-                ? 'A practical toolkit focused on turning requirements into responsive, production-ready applications.'
-                : 'Bộ công cụ thực tế giúp hiện thực hóa yêu cầu sản phẩm thành ứng dụng responsive chỉn chu.'}
-            </p>
+            <p>{t.stackSub}</p>
           </header>
 
+          {/* Interactive Skill Controls Bar */}
+          <div className="skills-controls-bar" data-reveal>
+            <div className="skills-search-wrapper">
+              <Search size={16} className="skills-search-icon" />
+              <input
+                type="text"
+                className="skills-search-input"
+                placeholder={t.searchSkillsPlaceholder}
+                value={skillSearch}
+                onChange={(e) => setSkillSearch(e.target.value)}
+                aria-label="Search skills"
+              />
+              {skillSearch && (
+                <button className="skills-search-clear" onClick={() => setSkillSearch('')} aria-label="Clear search">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div className="skills-category-chips">
+              <button
+                className={`skill-cat-chip ${skillCategory === 'all' ? 'is-active' : ''}`}
+                onClick={() => setSkillCategory('all')}
+              >
+                {t.allSkills}
+              </button>
+              {detailedSkillGroups.map((g) => (
+                <button
+                  key={g.id}
+                  className={`skill-cat-chip ${skillCategory === g.id ? 'is-active' : ''}`}
+                  onClick={() => setSkillCategory(g.id)}
+                >
+                  {language === 'en' ? g.titleEn : g.titleVi}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="skills-grid" data-reveal>
-            {detailedSkillGroups.map((group, index) => (
-              <article key={group.id} className="skill-card">
-                <span className="skill-num">{String(index + 1).padStart(2, '0')}</span>
-                <h3>{language === 'en' ? group.titleEn : group.titleVi}</h3>
-                <div className="skill-badges">
-                  {group.skills.map((skill) => (
-                    <span key={skill.name} className="skill-chip">
-                      {skill.icon && <img src={skill.icon} alt="" className="chip-icon" />}
-                      <span>{skill.name}</span>
-                    </span>
-                  ))}
-                </div>
-              </article>
-            ))}
+            {filteredSkillGroups.length === 0 ? (
+              <div className="skills-empty-state">
+                <Terminal size={32} />
+                <p>{t.noResults}</p>
+                <button className="button button-ghost" onClick={() => { setSkillSearch(''); setSkillCategory('all') }}>
+                  Reset Filters
+                </button>
+              </div>
+            ) : (
+              filteredSkillGroups.map((group, index) => (
+                <article key={group.id} className="skill-card spotlight-target">
+                  <div className="skill-card-top">
+                    <span className="skill-num">{String(index + 1).padStart(2, '0')}</span>
+                    <span className="skill-count-badge">{group.skills.length} skills</span>
+                  </div>
+                  <h3>{language === 'en' ? group.titleEn : group.titleVi}</h3>
+                  <div className="skill-badges">
+                    {group.skills.map((skill) => (
+                      <span key={skill.name} className="skill-chip">
+                        {skill.icon && <img src={skill.icon} alt="" className="chip-icon" />}
+                        <span>{skill.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </article>
+              ))
+            )}
           </div>
         </section>
 
+        {/* Contact & Interactive Message Section */}
         <section id="contact" className="contact-section">
           <div className="page-width contact-inner" data-reveal>
             <span className="eyebrow">04 / CONTACT</span>
@@ -832,17 +1169,95 @@ function App() {
               <br />
               <em>{t.contactTitleB}</em>
             </h2>
-            <div className="contact-row">
-              <p>{t.contactBody}</p>
-              <div className="contact-actions">
-                <a className="button button-light" href="mailto:huynhgiahuy236@gmail.com">
-                  {t.email}
-                  <ArrowUpRight size={18} />
-                </a>
-                <button className="button button-outline" onClick={copyEmail}>
-                  {copied ? <Check size={18} /> : <Copy size={18} />}
-                  <span>{copied ? t.copied : 'Copy email'}</span>
-                </button>
+
+            <div className="contact-main-grid">
+              <div className="contact-info-col">
+                <p className="contact-lead-text">{t.contactBody}</p>
+                <div className="contact-actions-row">
+                  <a className="button button-light" href="mailto:huynhgiahuy236@gmail.com">
+                    <Send size={16} />
+                    <span>{t.email}</span>
+                  </a>
+                  <button className="button button-outline" onClick={copyEmail}>
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                    <span>{copied ? t.copied : 'Copy Email'}</span>
+                  </button>
+                </div>
+
+                <div className="contact-badges-group">
+                  <div className="contact-badge-item">
+                    <span className="badge-dot green" />
+                    <span>Active & Available for Interviews</span>
+                  </div>
+                  <div className="contact-badge-item">
+                    <span className="badge-dot blue" />
+                    <span>Response Time: &lt; 24 hours</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Message Form */}
+              <div className="quick-message-card spotlight-target">
+                <div className="quick-card-header">
+                  <Sparkles size={18} className="quick-card-icon" />
+                  <div>
+                    <h4>{t.quickMessageTitle}</h4>
+                    <p>{t.quickMessageSub}</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleQuickSend} className="quick-form">
+                  <div className="form-field">
+                    <label htmlFor="contact-name">{t.senderName}</label>
+                    <input
+                      id="contact-name"
+                      type="text"
+                      placeholder="e.g. Alex / Tech Lead"
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="contact-email">{t.senderEmail}</label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      placeholder="your.email@company.com"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="contact-msg">{t.senderMsg}</label>
+                    <textarea
+                      id="contact-msg"
+                      rows={3}
+                      placeholder="Let's discuss fullstack / backend / mobile engineering opportunities..."
+                      value={contactMsg}
+                      onChange={(e) => setContactMsg(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-buttons-row">
+                    <button type="submit" className="button button-light form-submit-btn">
+                      <Send size={15} />
+                      <span>{t.sendAction}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-outline form-copy-btn"
+                      onClick={handleCopyFormattedMsg}
+                    >
+                      <Copy size={15} />
+                      <span>{t.copyMsgAction}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
 
@@ -853,6 +1268,7 @@ function App() {
                   language={language}
                   buttonClass="footer-link cv-footer-trigger"
                   align="top"
+                  onDownload={(title) => showToast(`Starting download: ${title}`, 'success')}
                 />
                 <a href="https://github.com/huynhgiahuy236" target="_blank" rel="noreferrer" className="footer-link">
                   <Github size={14} />
@@ -868,10 +1284,24 @@ function App() {
         </section>
       </main>
 
-      <a className={`back-to-top ${showBackToTop ? 'is-visible' : ''}`} href="#top" aria-label={t.backToTop}>
-        <ArrowUp size={20} />
-      </a>
+      {/* Floating Action Buttons */}
+      <div className="floating-bar">
+        <button
+          className="floating-cmdk-btn"
+          onClick={() => setCmdKOpen(true)}
+          aria-label="Open Command Palette"
+          title="Command Palette (Ctrl+K)"
+        >
+          <Command size={18} />
+          <span>⌘K</span>
+        </button>
 
+        <a className={`back-to-top ${showBackToTop ? 'is-visible' : ''}`} href="#top" aria-label={t.backToTop}>
+          <ArrowUp size={20} />
+        </a>
+      </div>
+
+      {/* Lightbox Preview Modal */}
       {lightbox && (
         <LightboxModal
           state={lightbox}
@@ -879,6 +1309,31 @@ function App() {
           onNavigate={(index) => setLightbox({ ...lightbox, currentIndex: index })}
         />
       )}
+
+      {/* Case Study & Architecture Modal */}
+      {selectedCaseStudy && (
+        <ProjectModal
+          project={selectedCaseStudy}
+          language={language}
+          onClose={() => setSelectedCaseStudy(null)}
+          onOpenLightbox={handleOpenLightbox}
+          projectImages={projectImages}
+        />
+      )}
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={cmdKOpen}
+        onClose={() => setCmdKOpen(false)}
+        language={language}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onToggleLanguage={toggleLanguage}
+        onSelectProject={(proj) => {
+          setSelectedCaseStudy(proj)
+        }}
+        onCopyEmail={copyEmail}
+      />
     </div>
   )
 }
