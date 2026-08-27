@@ -1239,8 +1239,8 @@ function App() {
 
                   <div className="form-buttons-row">
                     <button type="submit" className="button button-light form-submit-btn">
-                      <Send size={15} />
-                      <span>{t.sendAction}</span>
+                      {messageSent ? <Check size={15} /> : <Send size={15} />}
+                      <span>{messageSent ? (language === 'en' ? 'Opening email client...' : 'Đang mở email...') : t.sendAction}</span>
                     </button>
                     <button
                       type="button"
