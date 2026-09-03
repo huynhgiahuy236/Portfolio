@@ -601,7 +601,7 @@ function App() {
     setLanguage((prev) => {
       const next = prev === 'en' ? 'vi' : 'en'
       showToast(
-        next === 'vi' ? 'Đã chuyển sang Tiếng Việt' : 'Switched to English',
+        next === 'vi' ? 'Đã chuyển  Tiếng Việt' : 'Switched to English',
         'info',
       )
       return next
